@@ -4,21 +4,47 @@ import React, { useState, useEffect } from 'react';
 import { db } from '@/lib/db';
 import { enqueueOutbox } from '@/lib/sync';
 import type { BodyMetrics } from '@sperad/shared';
+import {
+  updateWeightKalman,
+  analyzeWeightTrend,
+  DEFAULT_WEIGHT_STATE,
+  type WeightKalmanState,
+  type WeightAnalysisResult
+} from '@sperad/engine';
 
 export default function WeightPage() {
   const [weightKg, setWeightKg] = useState<number>(78.5);
   const [history, setHistory] = useState<BodyMetrics[]>([]);
   const [isSaved, setIsSaved] = useState<boolean>(false);
+  const [trendAnalysis, setTrendAnalysis] = useState<WeightAnalysisResult | null>(null);
 
   useEffect(() => {
     loadHistory();
   }, []);
 
   const loadHistory = async () => {
-    const list = await db.bodyMetrics.orderBy('recordedAt').reverse().limit(7).toArray();
+    const list = await db.bodyMetrics.orderBy('recordedAt').reverse().limit(14).toArray();
     setHistory(list);
     if (list.length > 0) {
       setWeightKg(list[0].weightKg);
+
+      // Replay chronological weigh-ins through Algorithm 5-A Kalman Filter
+      let kalmanState: WeightKalmanState = {
+        ...DEFAULT_WEIGHT_STATE,
+        weightTrendKg: list[list.length - 1].weightKg,
+        lastRecordedDate: list[list.length - 1].recordedAt.split('T')[0]
+      };
+
+      const sortedChronological = list.slice().reverse();
+      for (const item of sortedChronological) {
+        kalmanState = updateWeightKalman(kalmanState, {
+          weightKg: item.weightKg,
+          date: item.recordedAt.split('T')[0]
+        });
+      }
+
+      const analysis = analyzeWeightTrend(kalmanState, 'hypertrophy');
+      setTrendAnalysis(analysis);
     }
   };
 
@@ -99,6 +125,74 @@ export default function WeightPage() {
       >
         {isSaved ? '✓ وزن امروز ثبت شد' : 'ثبت وزن'}
       </button>
+
+      {/* Algorithm 5-A: Kalman Weight Trend Card */}
+      {trendAnalysis && (
+        <section className="glass-panel-elevated p-4 rounded-2xl border-emerald-500/20 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-xs font-black text-slate-100">روند کالمن وزن (الگوریتم ۵-الف)</span>
+            </div>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                trendAnalysis.goalStatus === 'on_track'
+                  ? 'bg-emerald-500/15 text-emerald-300'
+                  : 'bg-amber-500/15 text-amber-300'
+              }`}
+            >
+              {trendAnalysis.goalStatus === 'on_track' ? 'مطلوب' : 'هشدار نرخ'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="glass-panel p-2.5 rounded-xl flex flex-col">
+              <span className="text-[10px] text-slate-400">سطح هموارشده</span>
+              <span className="text-sm font-black fa-num text-emerald-400 mt-1">
+                {trendAnalysis.smoothedWeightKg.toFixed(1)} kg
+              </span>
+            </div>
+
+            <div className="glass-panel p-2.5 rounded-xl flex flex-col">
+              <span className="text-[10px] text-slate-400">تغییر هفتگی</span>
+              <span className="text-sm font-black fa-num text-cyan-400 mt-1">
+                {trendAnalysis.weeklyChangePercent > 0 ? '+' : ''}
+                {trendAnalysis.weeklyChangePercent.toFixed(2)}%
+              </span>
+            </div>
+
+            <div className="glass-panel p-2.5 rounded-xl flex flex-col">
+              <span className="text-[10px] text-slate-400">باند اطمینان ۸۰٪</span>
+              <span className="text-[11px] font-bold fa-num text-slate-300 mt-1">
+                ±{trendAnalysis.upperBound80Percent.toFixed(2)}%
+              </span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-400 leading-relaxed bg-white/[0.02] p-2.5 rounded-xl border border-white/5">
+            {trendAnalysis.explanationFa}
+          </p>
+        </section>
+      )}
+
+      {/* Algorithm 5-B: Nutrition & Daily Protein Target Card */}
+      <section className="glass-panel p-4 rounded-2xl flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <span className="text-xs font-black text-slate-100">هدف پروتئین روزانه (الگوریتم ۵-ب)</span>
+          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+            ۱.۶ - ۲.۲ g/kg
+          </span>
+        </div>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-xs text-slate-400">توصیه متناسب با وزن شما:</span>
+          <span className="text-sm font-black fa-num text-slate-100">
+            {Math.round(weightKg * 1.6)} تا {Math.round(weightKg * 2.2)} گرم
+          </span>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-relaxed">
+          فراتحلیل‌های سنتز پروتئین عضلانی نشان می‌دهند دریافت روزانه در این بازه، حداکثر پاسخ هایپرتروفی بدون هدررفت اکسیداتیو را محقق می‌کند.
+        </p>
+      </section>
 
       {/* History */}
       <section className="mt-2 flex flex-col gap-2">

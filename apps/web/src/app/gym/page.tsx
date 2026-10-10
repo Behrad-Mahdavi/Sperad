@@ -5,6 +5,13 @@ import { db } from '@/lib/db';
 import { enqueueOutbox } from '@/lib/sync';
 import { ensureSeedExercisesLoaded, INITIAL_EXERCISES } from '@/lib/seed-exercises';
 import type { Exercise, Set as WorkoutSet, WorkoutSession } from '@sperad/shared';
+import {
+  recommendNextSetLoad,
+  updateKalmanE1RM,
+  DEFAULT_E1RM_STATE,
+  type KalmanStateE1RM,
+  type LoadRecommendationResult
+} from '@sperad/engine';
 
 export default function GymModePage() {
   const [exercises, setExercises] = useState<Exercise[]>(INITIAL_EXERCISES);
@@ -140,6 +147,31 @@ export default function GymModePage() {
     }
   }, [selectedExerciseId, ghostSet]);
 
+  const [kalmanState, setKalmanState] = useState<KalmanStateE1RM>(DEFAULT_E1RM_STATE);
+  const [prAlert, setPrAlert] = useState<string | null>(null);
+
+  // Dynamic Engine Recommendation (Algorithm 2)
+  const engineRecommendation = useMemo<LoadRecommendationResult>(() => {
+    return recommendNextSetLoad(
+      kalmanState,
+      {
+        targetReps: 8,
+        targetRir: 2,
+        repRange: [6, 10],
+        availableIncrementsKg: [selectedExercise?.defaultLoadIncrementKg || 2.5]
+      },
+      ghostSet
+        ? {
+            loadKg: ghostSet.loadKg,
+            reps: ghostSet.reps,
+            rir: ghostSet.rir ?? 2,
+            setNumberInSession: ghostSet.setNumber,
+            performedDate: ghostSet.performedAt.split('T')[0]
+          }
+        : undefined
+    );
+  }, [kalmanState, selectedExercise, ghostSet]);
+
   const nextSetNumber = useMemo(() => {
     const exerciseSets = sessionSets.filter(
       (s) => s.exerciseId === selectedExerciseId && !s.isWarmup && !s.supersededBy
@@ -168,6 +200,25 @@ export default function GymModePage() {
     await db.sets.put(newSet);
     setSessionSets((prev) => [...prev, newSet]);
     await enqueueOutbox('sets', 'INSERT', newSet.clientUuid, newSet);
+
+    // Update Algorithm 2 Bayesian e1RM & PR detection
+    if (!isWarmup) {
+      const { newState, isNewPR } = updateKalmanE1RM(
+        kalmanState,
+        {
+          loadKg,
+          reps,
+          rir,
+          setNumberInSession: nextSetNumber,
+          performedDate: new Date().toISOString().split('T')[0]
+        }
+      );
+      setKalmanState(newState);
+      if (isNewPR) {
+        setPrAlert(`🔥 رکورد جدید توان ۱RM: ${newState.allTimeRecordE1RM} کیلوگرم!`);
+        setTimeout(() => setPrAlert(null), 4500);
+      }
+    }
 
     setRestTimerSeconds(90);
     if (isWarmup) setIsWarmup(false);
@@ -342,7 +393,48 @@ export default function GymModePage() {
             اولین ست این حرکت در این جلسه
           </div>
         )}
+
+        {/* Engine Recommendation Card (Algorithm 2) */}
+        {engineRecommendation && (
+          <div className="p-3 rounded-xl bg-cyan-500/[0.05] border border-cyan-500/25 flex flex-col gap-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[11px] font-black text-cyan-400 flex items-center gap-1.5">
+                <span>🧠</span>
+                <span>پیشنهاد موتور (الگوریتم ۲ بیزی)</span>
+              </span>
+              <button
+                onClick={() => {
+                  setLoadKg(engineRecommendation.suggestedLoadKg);
+                  setReps(engineRecommendation.targetReps);
+                  setRir(engineRecommendation.targetRir);
+                }}
+                className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 transition cursor-pointer"
+              >
+                اعمال پیشنهاد ✓
+              </button>
+            </div>
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-extrabold text-slate-100 fa-num">
+                {engineRecommendation.suggestedLoadKg} kg × {engineRecommendation.targetReps} تکرار @ RIR {engineRecommendation.targetRir}
+              </span>
+              <span className="text-[10px] text-slate-400 fa-num">
+                e1RM تخمینی: {engineRecommendation.e1rmMeanKg} kg
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              {engineRecommendation.explanationFa}
+            </p>
+          </div>
+        )}
       </section>
+
+      {/* PR Alert Celebration Banner */}
+      {prAlert && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-500/40 text-amber-200 text-xs font-black flex items-center justify-between glow-amber animate-bounce">
+          <span>{prAlert}</span>
+          <span className="text-base">🏆</span>
+        </div>
+      )}
 
       {/* 4. Set Header (Set count & Warmup Pill) */}
       <div className="flex justify-between items-center px-1">
