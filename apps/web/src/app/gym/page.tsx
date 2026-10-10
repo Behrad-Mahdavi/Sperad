@@ -81,10 +81,7 @@ export default function GymModePage() {
 
   const initSession = async () => {
     const activeSession = await db.sessions
-      .where('completedAt')
-      .equals('')
-      .or('completedAt')
-      .equals(null as any)
+      .filter((s) => !s.completedAt)
       .last();
 
     if (activeSession) {
