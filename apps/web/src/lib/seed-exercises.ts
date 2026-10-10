@@ -1,0 +1,396 @@
+import { db } from './db';
+import type { Exercise } from '@sperad/shared';
+
+export const INITIAL_EXERCISES: Exercise[] = [
+  // CHEST
+  {
+    id: 'barbell_bench_press',
+    nameEn: 'Barbell Bench Press',
+    nameFa: 'پرس سینه هالتر',
+    movementPattern: 'horizontal_push',
+    equipment: 'barbell',
+    primaryMuscles: [{ muscleId: 'chest', weight: 1.0 }],
+    secondaryMuscles: [
+      { muscleId: 'triceps', weight: 0.5 },
+      { muscleId: 'front_delts', weight: 0.4 }
+    ],
+    sfrPrior: 0.75,
+    jointFatigue: { shoulder: 0.5, elbow: 0.3, wrist: 0.2, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.7,
+    lengthBias: 0.4,
+    estimatedTimeSec: 180,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'incline_dumbbell_press',
+    nameEn: 'Incline Dumbbell Press',
+    nameFa: 'پرس بالا سینه دمبل',
+    movementPattern: 'horizontal_push',
+    equipment: 'dumbbell',
+    primaryMuscles: [{ muscleId: 'chest', weight: 1.0 }],
+    secondaryMuscles: [
+      { muscleId: 'front_delts', weight: 0.5 },
+      { muscleId: 'triceps', weight: 0.4 }
+    ],
+    sfrPrior: 0.85,
+    jointFatigue: { shoulder: 0.4, elbow: 0.2, wrist: 0.2, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.6,
+    lengthBias: 0.6,
+    estimatedTimeSec: 150,
+    defaultLoadIncrementKg: 2.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'machine_chest_press',
+    nameEn: 'Machine Chest Press',
+    nameFa: 'پرس سینه دستگاه',
+    movementPattern: 'horizontal_push',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'chest', weight: 1.0 }],
+    secondaryMuscles: [
+      { muscleId: 'triceps', weight: 0.35 },
+      { muscleId: 'front_delts', weight: 0.3 }
+    ],
+    sfrPrior: 0.92,
+    jointFatigue: { shoulder: 0.2, elbow: 0.2, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.4,
+    lengthBias: 0.5,
+    estimatedTimeSec: 120,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'cable_fly_mid',
+    nameEn: 'Standing Cable Chest Fly',
+    nameFa: 'قفسه سینه سیم‌کش',
+    movementPattern: 'isolation_chest',
+    equipment: 'cable',
+    primaryMuscles: [{ muscleId: 'chest', weight: 1.0 }],
+    secondaryMuscles: [{ muscleId: 'front_delts', weight: 0.2 }],
+    sfrPrior: 0.9,
+    jointFatigue: { shoulder: 0.3, elbow: 0.1, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.3,
+    lengthBias: 0.8,
+    estimatedTimeSec: 120,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+
+  // SHOULDERS
+  {
+    id: 'seated_dumbbell_shoulder_press',
+    nameEn: 'Seated Dumbbell Shoulder Press',
+    nameFa: 'پرس سرشانه دمبل نشسته',
+    movementPattern: 'vertical_push',
+    equipment: 'dumbbell',
+    primaryMuscles: [{ muscleId: 'front_delts', weight: 1.0 }],
+    secondaryMuscles: [
+      { muscleId: 'triceps', weight: 0.4 },
+      { muscleId: 'side_delts', weight: 0.3 }
+    ],
+    sfrPrior: 0.82,
+    jointFatigue: { shoulder: 0.4, elbow: 0.2, wrist: 0.2, knee: 0, lowerBack: 0.1 },
+    systemicFatigue: 0.55,
+    lengthBias: 0.4,
+    estimatedTimeSec: 150,
+    defaultLoadIncrementKg: 2.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'cable_lateral_raise',
+    nameEn: 'Cable Lateral Raise',
+    nameFa: 'نشر جانب سیم‌کش',
+    movementPattern: 'isolation_delts',
+    equipment: 'cable',
+    primaryMuscles: [{ muscleId: 'side_delts', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.95,
+    jointFatigue: { shoulder: 0.2, elbow: 0, wrist: 0, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.2,
+    lengthBias: 0.7,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 1.25,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'reverse_pec_deck',
+    nameEn: 'Reverse Pec Deck (Rear Delt Fly)',
+    nameFa: 'فلای معکوس دستگاه (نشر خم)',
+    movementPattern: 'isolation_delts',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'rear_delts', weight: 1.0 }],
+    secondaryMuscles: [{ muscleId: 'upper_back', weight: 0.3 }],
+    sfrPrior: 0.94,
+    jointFatigue: { shoulder: 0.1, elbow: 0, wrist: 0, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.2,
+    lengthBias: 0.6,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+
+  // BACK
+  {
+    id: 'lat_pulldown_wide',
+    nameEn: 'Wide-Grip Lat Pulldown',
+    nameFa: 'زیربغل سیم‌کش دست باز',
+    movementPattern: 'vertical_pull',
+    equipment: 'cable',
+    primaryMuscles: [{ muscleId: 'lats', weight: 1.0 }],
+    secondaryMuscles: [
+      { muscleId: 'biceps', weight: 0.35 },
+      { muscleId: 'upper_back', weight: 0.3 }
+    ],
+    sfrPrior: 0.9,
+    jointFatigue: { shoulder: 0.3, elbow: 0.2, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.45,
+    lengthBias: 0.7,
+    estimatedTimeSec: 120,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'chest_supported_row',
+    nameEn: 'Chest-Supported Row',
+    nameFa: 'زیربغل تی‌بار یا دمبل با تکیه‌گاه',
+    movementPattern: 'horizontal_pull',
+    equipment: 'machine',
+    primaryMuscles: [
+      { muscleId: 'upper_back', weight: 0.8 },
+      { muscleId: 'lats', weight: 0.7 }
+    ],
+    secondaryMuscles: [
+      { muscleId: 'biceps', weight: 0.35 },
+      { muscleId: 'rear_delts', weight: 0.3 }
+    ],
+    sfrPrior: 0.93,
+    jointFatigue: { shoulder: 0.2, elbow: 0.2, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.4,
+    lengthBias: 0.6,
+    estimatedTimeSec: 120,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'seated_cable_row',
+    nameEn: 'Seated Cable Row',
+    nameFa: 'قایقی سیم‌کش نشسته',
+    movementPattern: 'horizontal_pull',
+    equipment: 'cable',
+    primaryMuscles: [
+      { muscleId: 'upper_back', weight: 0.7 },
+      { muscleId: 'lats', weight: 0.7 }
+    ],
+    secondaryMuscles: [{ muscleId: 'biceps', weight: 0.35 }],
+    sfrPrior: 0.88,
+    jointFatigue: { shoulder: 0.2, elbow: 0.2, wrist: 0.1, knee: 0, lowerBack: 0.2 },
+    systemicFatigue: 0.45,
+    lengthBias: 0.6,
+    estimatedTimeSec: 120,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+
+  // ARMS
+  {
+    id: 'incline_dumbbell_curl',
+    nameEn: 'Incline Dumbbell Bicep Curl',
+    nameFa: 'جلو بازو دمبل شیب‌دار',
+    movementPattern: 'isolation_arms',
+    equipment: 'dumbbell',
+    primaryMuscles: [{ muscleId: 'biceps', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.92,
+    jointFatigue: { shoulder: 0.2, elbow: 0.2, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.25,
+    lengthBias: 0.9,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 1.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'overhead_cable_triceps_ext',
+    nameEn: 'Overhead Cable Triceps Extension',
+    nameFa: 'پشت بازو سیم‌کش از پشت سر',
+    movementPattern: 'isolation_arms',
+    equipment: 'cable',
+    primaryMuscles: [{ muscleId: 'triceps', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.93,
+    jointFatigue: { shoulder: 0.3, elbow: 0.3, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.25,
+    lengthBias: 0.9,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'cable_triceps_pushdown',
+    nameEn: 'Cable Triceps Pushdown',
+    nameFa: 'پشت بازو سیم‌کش طنابی/صاف',
+    movementPattern: 'isolation_arms',
+    equipment: 'cable',
+    primaryMuscles: [{ muscleId: 'triceps', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.91,
+    jointFatigue: { shoulder: 0.1, elbow: 0.3, wrist: 0.1, knee: 0, lowerBack: 0 },
+    systemicFatigue: 0.2,
+    lengthBias: 0.3,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+
+  // LEGS
+  {
+    id: 'hack_squat_machine',
+    nameEn: 'Hack Squat Machine',
+    nameFa: 'هاک اسکوات دستگاه',
+    movementPattern: 'squat',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'quads', weight: 0.95 }],
+    secondaryMuscles: [{ muscleId: 'glutes', weight: 0.4 }],
+    sfrPrior: 0.88,
+    jointFatigue: { knee: 0.5, lowerBack: 0.2, shoulder: 0, elbow: 0, wrist: 0 },
+    systemicFatigue: 0.7,
+    lengthBias: 0.7,
+    estimatedTimeSec: 180,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'leg_press_45',
+    nameEn: '45-Degree Leg Press',
+    nameFa: 'پرس پا ۴۵ درجه',
+    movementPattern: 'squat',
+    equipment: 'machine',
+    primaryMuscles: [
+      { muscleId: 'quads', weight: 0.8 },
+      { muscleId: 'glutes', weight: 0.5 }
+    ],
+    secondaryMuscles: [{ muscleId: 'hamstrings', weight: 0.15 }],
+    sfrPrior: 0.85,
+    jointFatigue: { knee: 0.4, lowerBack: 0.2, shoulder: 0, elbow: 0, wrist: 0 },
+    systemicFatigue: 0.65,
+    lengthBias: 0.6,
+    estimatedTimeSec: 180,
+    defaultLoadIncrementKg: 10.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'leg_extension',
+    nameEn: 'Seated Leg Extension',
+    nameFa: 'جلو ران دستگاه',
+    movementPattern: 'isolation_legs',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'quads', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.94,
+    jointFatigue: { knee: 0.4, lowerBack: 0, shoulder: 0, elbow: 0, wrist: 0 },
+    systemicFatigue: 0.3,
+    lengthBias: 0.5,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'seated_leg_curl',
+    nameEn: 'Seated Leg Curl Machine',
+    nameFa: 'پشت ران نشسته دستگاه',
+    movementPattern: 'isolation_legs',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'hamstrings', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.95,
+    jointFatigue: { knee: 0.2, lowerBack: 0, shoulder: 0, elbow: 0, wrist: 0 },
+    systemicFatigue: 0.25,
+    lengthBias: 0.9,
+    estimatedTimeSec: 100,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'romanian_deadlift_barbell',
+    nameEn: 'Barbell Romanian Deadlift (RDL)',
+    nameFa: 'ددلیفت رومانیایی با هالتر',
+    movementPattern: 'hinge',
+    equipment: 'barbell',
+    primaryMuscles: [
+      { muscleId: 'hamstrings', weight: 0.9 },
+      { muscleId: 'glutes', weight: 0.7 }
+    ],
+    secondaryMuscles: [
+      { muscleId: 'upper_back', weight: 0.2 },
+      { muscleId: 'traps', weight: 0.2 }
+    ],
+    sfrPrior: 0.76,
+    jointFatigue: { lowerBack: 0.7, knee: 0.1, shoulder: 0, elbow: 0, wrist: 0.2 },
+    systemicFatigue: 0.85,
+    lengthBias: 0.9,
+    estimatedTimeSec: 180,
+    defaultLoadIncrementKg: 2.5,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  },
+  {
+    id: 'standing_calf_raise',
+    nameEn: 'Standing Calf Raise Machine',
+    nameFa: 'ساق پا ایستاده دستگاه',
+    movementPattern: 'isolation_calves',
+    equipment: 'machine',
+    primaryMuscles: [{ muscleId: 'calves', weight: 1.0 }],
+    secondaryMuscles: [],
+    sfrPrior: 0.92,
+    jointFatigue: { knee: 0.1, lowerBack: 0.1, shoulder: 0, elbow: 0, wrist: 0 },
+    systemicFatigue: 0.2,
+    lengthBias: 0.8,
+    estimatedTimeSec: 90,
+    defaultLoadIncrementKg: 5.0,
+    e1rmConversionFactor: 1.0,
+    source: 'prior',
+    isActive: true
+  }
+];
+
+export async function ensureSeedExercisesLoaded(): Promise<void> {
+  const count = await db.exercises.count();
+  if (count === 0) {
+    await db.exercises.bulkPut(INITIAL_EXERCISES);
+  }
+}
