@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import './globals.css';
-import Link from 'next/link';
+import { BottomNav } from '@/components/layout/BottomNav';
 
 const iransans = localFont({
   src: [
@@ -55,50 +55,8 @@ export default function RootLayout({
           {children}
         </main>
 
-        {/* Premium Floating Glass Dock Bar */}
-        <div className="fixed bottom-4 left-4 right-4 z-50 max-w-md mx-auto">
-          <nav className="glass-panel-elevated rounded-2xl px-2 py-2 flex items-center justify-around shadow-2xl shadow-black/80">
-            <Link
-              href="/gym"
-              className="flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-all active:scale-95 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 flex items-center justify-center mb-1 group-hover:bg-emerald-500/25 transition">
-                <span className="text-base">🏋️</span>
-              </div>
-              <span className="text-[11px] font-bold tracking-tight">باشگاه</span>
-            </Link>
-
-            <Link
-              href="/checkin"
-              className="flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all active:scale-95 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mb-1 group-hover:bg-white/10 transition">
-                <span className="text-base">📋</span>
-              </div>
-              <span className="text-[11px] font-semibold tracking-tight">چک‌این</span>
-            </Link>
-
-            <Link
-              href="/weight"
-              className="flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all active:scale-95 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mb-1 group-hover:bg-white/10 transition">
-                <span className="text-base">⚖️</span>
-              </div>
-              <span className="text-[11px] font-semibold tracking-tight">وزن</span>
-            </Link>
-
-            <Link
-              href="/"
-              className="flex flex-col items-center justify-center flex-1 py-1.5 px-2 rounded-xl text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-all active:scale-95 group"
-            >
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center mb-1 group-hover:bg-white/10 transition">
-                <span className="text-base">📊</span>
-              </div>
-              <span className="text-[11px] font-semibold tracking-tight">داشبورد</span>
-            </Link>
-          </nav>
-        </div>
+        {/* Modular Floating Glass Dock Bar */}
+        <BottomNav />
       </body>
     </html>
   );
