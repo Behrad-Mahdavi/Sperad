@@ -89,6 +89,42 @@ export default function DashboardPage() {
         </Link>
       </section>
 
+      {/* Active User Program Banner */}
+      <section className="glass-panel-elevated p-4 rounded-3xl border-emerald-500/25 glow-emerald flex flex-col gap-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-black text-slate-100">برنامه فعال: دوره بازگشت و حجم‌گیری</span>
+          </div>
+          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
+            هفته ۱ (RIR ۳-۴)
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-2">
+          <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span className="text-[10px] text-slate-400">امروز در باشگاه</span>
+            <span className="text-xs font-black text-emerald-400 mt-1">روز ۱: Pull A</span>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span className="text-[10px] text-slate-400">کالری هدف</span>
+            <span className="text-xs font-black text-cyan-400 mt-1 fa-num">۳۱۰۰-۳۳۰۰</span>
+          </div>
+          <div className="p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 flex flex-col">
+            <span className="text-[10px] text-slate-400">پروتئین هدف</span>
+            <span className="text-xs font-black text-slate-200 mt-1 fa-num">۱۲۰-۱۶۰g</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between pt-1 border-t border-white/5 text-[11px]">
+          <span className="text-slate-400">🛡️ شانه راست، زانو و آشیل تحت حفاظت</span>
+          <Link href="/program" className="text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1">
+            <span>مشاهده جزئیات برنامه</span>
+            <span>❯</span>
+          </Link>
+        </div>
+      </section>
+
       {/* Algorithm 1: Daily Readiness Banner */}
       {readiness && (
         <section className="glass-panel p-4 rounded-2xl flex items-center justify-between border-emerald-500/25">

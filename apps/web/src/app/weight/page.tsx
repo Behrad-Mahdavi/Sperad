@@ -176,22 +176,45 @@ export default function WeightPage() {
       )}
 
       {/* Algorithm 5-B: Nutrition & Daily Protein Target Card */}
-      <section className="glass-panel p-4 rounded-2xl flex flex-col gap-2">
+      <section className="glass-panel p-4 rounded-2xl flex flex-col gap-2.5">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-black text-slate-100">هدف پروتئین روزانه (الگوریتم ۵-ب)</span>
+          <span className="text-xs font-black text-slate-100">اهداف کالری و پروتئین (برنامه ۴ هفته‌ای)</span>
           <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md">
-            ۱.۶ - ۲.۲ g/kg
+            سورپلاس تمیز
           </span>
         </div>
-        <div className="flex items-center justify-between mt-1">
-          <span className="text-xs text-slate-400">توصیه متناسب با وزن شما:</span>
-          <span className="text-sm font-black fa-num text-slate-100">
-            {Math.round(weightKg * 1.6)} تا {Math.round(weightKg * 2.2)} گرم
+
+        <div className="grid grid-cols-2 gap-2 mt-0.5">
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col">
+            <span className="text-[10px] text-slate-400">کالری هدف روزانه</span>
+            <span className="text-xs font-black fa-num text-emerald-400 mt-0.5">
+              ۳۱۰۰ تا ۳۳۰۰ kcal
+            </span>
+            <span className="text-[9px] text-slate-500 mt-0.5">نگهداری: ~۲۸۰۰ تا ۳۱۰۰</span>
+          </div>
+
+          <div className="p-2.5 rounded-xl bg-white/[0.02] border border-white/5 flex flex-col">
+            <span className="text-[10px] text-slate-400">هدف آهنگ رشد وزن</span>
+            <span className="text-xs font-black fa-num text-cyan-400 mt-0.5">
+              +۰.۲۵ تا +۰.۵۰ kg/هفته
+            </span>
+            <span className="text-[9px] text-slate-500 mt-0.5">پایش با روند کالمن</span>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-1 text-xs">
+          <span className="text-slate-400">پروتئین (۱.۶ تا ۲.۲ g/kg):</span>
+          <span className="font-black fa-num text-slate-100">
+            {Math.round(weightKg * 1.6)} تا {Math.round(weightKg * 2.2)} گرم روزانه
           </span>
         </div>
-        <p className="text-[10px] text-slate-500 leading-relaxed">
-          فراتحلیل‌های سنتز پروتئین عضلانی نشان می‌دهند دریافت روزانه در این بازه، حداکثر پاسخ هایپرتروفی بدون هدررفت اکسیداتیو را محقق می‌کند.
-        </p>
+
+        <div className="flex items-center justify-between text-xs border-t border-white/5 pt-2">
+          <span className="text-slate-400">کراتین روزانه:</span>
+          <span className="font-black fa-num text-emerald-400">
+            ۳ تا ۵ گرم (همراه وعده غذایی)
+          </span>
+        </div>
       </section>
 
       {/* History */}

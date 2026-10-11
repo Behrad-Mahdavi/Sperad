@@ -12,10 +12,19 @@ import {
   type KalmanStateE1RM,
   type LoadRecommendationResult
 } from '@sperad/engine';
+import {
+  USER_PROGRAM_DAYS,
+  USER_PROGRAM_VOLUMES,
+  type ProgramDayDef,
+  type ProgramExerciseDef
+} from '@/lib/user-program';
 
 export default function GymModePage() {
   const [exercises, setExercises] = useState<Exercise[]>(INITIAL_EXERCISES);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string>('barbell_bench_press');
+  const [selectedDayId, setSelectedDayId] = useState<string>('pull_a');
+  const [selectedWeek, setSelectedWeek] = useState<number>(1);
+  const [selectedExerciseId, setSelectedExerciseId] = useState<string>('tbar_machine_chest_supported_row');
+  const [todayReadinessScore, setTodayReadinessScore] = useState<number | null>(null);
   const [currentSession, setCurrentSession] = useState<WorkoutSession | null>(null);
   const [sessionSets, setSessionSets] = useState<WorkoutSet[]>([]);
   const [outboxPendingCount, setOutboxPendingCount] = useState<number>(0);
@@ -48,6 +57,14 @@ export default function GymModePage() {
     ensureSeedExercisesLoaded().then(async () => {
       const allEx = await db.exercises.toArray();
       if (allEx.length > 0) setExercises(allEx);
+    });
+
+    const todayDate = new Date().toISOString().split('T')[0];
+    db.dailyCheckins.get(todayDate).then((ch) => {
+      if (ch) {
+        const score = (ch.sleepQuality + ch.motivation + (5 - ch.stressLevel)) / 15;
+        setTodayReadinessScore(Math.round(score * 10 * 10) / 10);
+      }
     });
 
     initSession();
@@ -122,6 +139,29 @@ export default function GymModePage() {
     [exercises, selectedExerciseId]
   );
 
+  const currentProgramDay = useMemo<ProgramDayDef | undefined>(
+    () => USER_PROGRAM_DAYS.find((d) => d.id === selectedDayId),
+    [selectedDayId]
+  );
+
+  const currentProgramExercise = useMemo<ProgramExerciseDef | undefined>(
+    () => currentProgramDay?.exercises.find((e) => e.exerciseId === selectedExerciseId),
+    [currentProgramDay, selectedExerciseId]
+  );
+
+  const currentWeekVolume = useMemo(
+    () => USER_PROGRAM_VOLUMES[selectedWeek],
+    [selectedWeek]
+  );
+
+  const handleSelectDay = (dayId: string) => {
+    setSelectedDayId(dayId);
+    const day = USER_PROGRAM_DAYS.find((d) => d.id === dayId);
+    if (day && day.exercises.length > 0) {
+      setSelectedExerciseId(day.exercises[0].exerciseId);
+    }
+  };
+
   // Find previous set for this exercise
   const ghostSet = useMemo(() => {
     const exerciseSets = sessionSets
@@ -142,10 +182,18 @@ export default function GymModePage() {
           ? selectedExercise.defaultLoadIncrementKg * 20
           : 50
       );
-      setReps(8);
-      setRir(2);
+      // Pre-fill target reps from user program if defined
+      if (currentProgramExercise) {
+        const parsedReps = parseInt(currentProgramExercise.repsRange.split(' ')[0], 10);
+        setReps(isNaN(parsedReps) ? 8 : parsedReps);
+        // Pre-fill RIR target
+        setRir(selectedWeek === 1 ? 3 : selectedWeek === 2 ? 2 : currentProgramExercise.isCompound ? 2 : 1);
+      } else {
+        setReps(8);
+        setRir(2);
+      }
     }
-  }, [selectedExerciseId, ghostSet]);
+  }, [selectedExerciseId, ghostSet, currentProgramExercise, selectedWeek]);
 
   const [kalmanState, setKalmanState] = useState<KalmanStateE1RM>(DEFAULT_E1RM_STATE);
   const [prAlert, setPrAlert] = useState<string | null>(null);
@@ -331,10 +379,130 @@ export default function GymModePage() {
         </section>
       )}
 
+      {/* Program Routine Day Selector & Exercise Navigation */}
+      <section className="glass-panel p-3.5 rounded-2xl flex flex-col gap-2.5 border-emerald-500/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-xs font-black text-slate-100">
+              {currentProgramDay?.titleFa.split('(')[0]?.trim() || 'برنامه جلسات'}
+            </span>
+          </div>
+
+          {/* Week Pills */}
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4].map((wk) => (
+              <button
+                key={wk}
+                onClick={() => setSelectedWeek(wk)}
+                className={`text-[10px] font-black px-2 py-0.5 rounded-lg transition cursor-pointer fa-num ${
+                  selectedWeek === wk
+                    ? 'bg-emerald-400 text-slate-950 font-black shadow-md'
+                    : 'bg-white/5 text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                هفته {wk}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Current Week Target Volume & RIR badge */}
+        {currentWeekVolume && (
+          <div className="flex items-center justify-between text-[11px] px-2.5 py-1 rounded-xl bg-slate-900/60 border border-slate-800 text-slate-400">
+            <span className="text-emerald-400 font-bold">{currentWeekVolume.generalRirFa}</span>
+            <span className="text-slate-500 text-[10px]">برنامه بازگشت ۴ هفته‌ای</span>
+          </div>
+        )}
+
+        {/* Routine Day Selector Tabs */}
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5 no-scrollbar">
+          {USER_PROGRAM_DAYS.map((d) => (
+            <button
+              key={d.id}
+              onClick={() => handleSelectDay(d.id)}
+              className={`px-2.5 py-1.5 rounded-xl text-[11px] font-black whitespace-nowrap transition cursor-pointer ${
+                selectedDayId === d.id
+                  ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                  : 'bg-white/5 text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {d.titleFa.split(':')[1]?.split('(')[0]?.trim() || d.titleFa}
+            </button>
+          ))}
+        </div>
+
+        {/* Warmup notice for Push A / Push B */}
+        {currentProgramDay?.warmupFa && (
+          <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-300 text-[11px] flex items-center gap-2">
+            <span>🛡️</span>
+            <span className="leading-relaxed font-semibold">{currentProgramDay.warmupFa}</span>
+          </div>
+        )}
+
+        {/* Autoregulation Alert (< 6) */}
+        {todayReadinessScore !== null && todayReadinessScore < 6 && (
+          <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/25 text-rose-300 text-[11px] flex items-center gap-2">
+            <span>⚠️</span>
+            <span className="leading-relaxed">
+              آمادگی امروز ({todayReadinessScore}/۱۰) زیر ۶ است؛ طبق اصل خودتنظیمی ۱ ست از هر حرکت کسر شد.
+            </span>
+          </div>
+        )}
+
+        {/* Day Exercises Chips Carousel */}
+        {currentProgramDay && (
+          <div className="flex flex-col gap-1 mt-0.5">
+            <span className="text-[10px] text-slate-400 font-bold">حرکات این جلسه (به ترتیب اجرای بهینه):</span>
+            <div className="flex gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {currentProgramDay.exercises.map((ex, idx) => {
+                const isSelected = ex.exerciseId === selectedExerciseId;
+                const completedSetsCount = sessionSets.filter(
+                  (s) => s.exerciseId === ex.exerciseId && !s.isWarmup && !s.supersededBy
+                ).length;
+                let targetSets = ex.setsByWeek[selectedWeek - 1];
+                if (todayReadinessScore !== null && todayReadinessScore < 6) {
+                  targetSets = Math.max(1, targetSets - 1);
+                }
+
+                return (
+                  <button
+                    key={ex.exerciseId}
+                    onClick={() => setSelectedExerciseId(ex.exerciseId)}
+                    className={`px-2.5 py-1.5 rounded-xl text-[11px] flex items-center gap-1.5 whitespace-nowrap transition cursor-pointer border ${
+                      isSelected
+                        ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-black'
+                        : 'bg-white/[0.03] text-slate-300 border-white/5 hover:bg-white/[0.06]'
+                    }`}
+                  >
+                    <span className="opacity-60 fa-num">{idx + 1}.</span>
+                    <span>{ex.nameFa}</span>
+                    <span className={`text-[10px] font-bold fa-num px-1.5 py-0.2 rounded-md ${
+                      completedSetsCount >= targetSets
+                        ? 'bg-emerald-500/30 text-emerald-200'
+                        : 'bg-white/10 text-slate-400'
+                    }`}>
+                      {completedSetsCount}/{targetSets}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </section>
+
       {/* 3. Exercise Card with Quick Search Drawer */}
       <section className="glass-panel rounded-2xl p-4 flex flex-col gap-2.5">
         <div className="flex justify-between items-center">
-          <span className="text-[11px] font-semibold text-slate-400">حرکت انتخابی</span>
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-semibold text-slate-400">حرکت انتخابی</span>
+            {currentProgramExercise && (
+              <span className="text-[10px] font-black fa-num px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                هدف: {currentProgramExercise.repsRange} تکرار @ RIR {selectedWeek === 1 ? '۳-۴' : selectedWeek === 2 ? '۲-۳' : currentProgramExercise.isCompound ? '۲' : '۱-۲'}
+              </span>
+            )}
+          </div>
           <button
             onClick={() => setIsSearchOpen(true)}
             className="text-xs font-bold text-emerald-400 hover:text-emerald-300 flex items-center gap-1 cursor-pointer transition active:scale-95"
@@ -360,6 +528,11 @@ export default function GymModePage() {
                 {selectedExercise.equipment}
               </span>
             </div>
+            {currentProgramExercise?.notesFa && (
+              <p className="text-[11px] text-emerald-400/90 font-medium mt-2 leading-relaxed bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20">
+                💡 <span className="font-bold">نکته اجرای اصولی:</span> {currentProgramExercise.notesFa}
+              </p>
+            )}
           </div>
           <span className="text-slate-500 text-sm">❯</span>
         </div>
